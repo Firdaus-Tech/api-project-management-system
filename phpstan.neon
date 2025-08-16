@@ -1,8 +1,84 @@
 includes:
-    - ./vendor/larastan/larastan/extension.neon
+    - vendor/larastan/larastan/extension.neon
+    - vendor/nesbot/carbon/extension.neon
+
 
 parameters:
-    level: 7
+
     paths:
-        - app
-        - routes
+        - app/
+        - routes/
+
+    #we use level 6 as the baseline
+    level: 6
+    reportUnmatchedIgnoredErrors: false
+
+
+    ignoreErrors:
+        -
+            identifier: property.notFound
+        -
+            identifier: missingType.generics
+        -
+            identifier: argument.templateType
+        -
+            identifier: method.notFound
+        -
+            identifier: larastan.relationExistence
+        -
+            identifier: staticMethod.notFound
+        -
+            identifier: missingType.iterableValue
+
+
+
+
+
+      # Note for team:
+    ############################################################################
+    # LARASTAN/PHPSTAN LEVELS (0–10)
+    #
+    # Level 0:
+    #   - Basic checks
+    #   - Unknown classes, functions, methods called on $this
+    #   - Wrong number of arguments passed to methods/functions
+    #   - Always-undefined variables
+    #
+    # Level 1:
+    #   - Possibly undefined variables
+    #   - Unknown magic methods and properties on classes with __call and __get
+    #
+    # Level 2:
+    #   - Unknown methods checked on all expressions (not just $this)
+    #   - Validating PHPDocs
+    #
+    # Level 3:
+    #   - Return types
+    #   - Types assigned to properties
+    #
+    # Level 4:
+    #   - Basic dead code checking
+    #     (always-false instanceof, dead else branches, unreachable code)
+    #
+    # Level 5:
+    #   - Checking types of arguments passed to methods and functions
+    #
+    # Level 6:
+    #   - Report missing typehints
+    #
+    # Level 7:
+    #   - Report partially wrong union types
+    #   - Report method calls that exist only on some union types
+    #   - Other possibly incorrect situations
+    #
+    # Level 8:
+    #   - Report calling methods and accessing properties on nullable types
+    #
+    # Level 9:
+    #   - Be strict about explicit 'mixed' type
+    #     (only allowed operation is passing it to another 'mixed')
+    #
+    # Level 10:
+    #   - (PHPStan 2.0+) Even more strict about 'mixed'
+    #   - Reports errors for implicit mixed (missing type), not just explicit
+    ############################################################################

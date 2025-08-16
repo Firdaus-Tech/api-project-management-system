@@ -1,0 +1,77 @@
+#!/bin/sh
+###############################################################################
+# Husky Pre-commit Hook
+#
+# Purpose:
+#   - Prevent insecure dependencies (Composer Audit)
+#   - Prevent broken tests (Pest)
+#   - Enforce coding standards (Laravel Pint)
+#   - Enforce static analysis (PHPStan)
+#
+# Notes:
+#   - This script only runs on staged PHP files to optimize performance.
+#   - If Pint auto-fixes files, you must re-stage them before committing.
+###############################################################################
+
+echo "🔒 [1/4] Security Check - Composer Audit"
+composer audit --no-interaction
+if [ $? -ne 0 ]; then
+  echo "❌ Security vulnerabilities detected!"
+  echo "👉 Run 'composer audit' locally to view details and patch before committing."
+  exit 1
+fi
+
+echo "🧪 [2/4] Run Test - Pest"
+./vendor/bin/pest
+if [ $? -ne 0 ]; then
+  echo "❌ Some tests failed!"
+  echo "👉 Run './vendor/bin/pest' locally, fix the failing tests, and retry commit."
+  exit 1
+fi
+
+# Setup temp directory for staged file analysis
+TEMP_DIR="./storage/phpstan"
+mkdir -p "$TEMP_DIR"
+
+STAGED_FILES_TEMP="$TEMP_DIR/staged_files_$(date +%s).txt"
+PHPSTAN_OUTPUT_TEMP="$TEMP_DIR/phpstan_output_$(date +%s).txt"
+
+# Ensure cleanup on exit
+cleanup() {
+    rm -f "$STAGED_FILES_TEMP" "$PHPSTAN_OUTPUT_TEMP"
+}
+trap cleanup EXIT INT TERM
+
+# Collect staged PHP files
+git diff --cached --name-only --diff-filter=ACMR | grep "\.php$" > "$STAGED_FILES_TEMP"
+
+if [ ! -s "$STAGED_FILES_TEMP" ]; then
+    echo "ℹ️ No staged PHP files. Skipping Pint & PHPStan."
+    exit 0
+fi
+
+# echo "🎨 [3/4] Code Style - Laravel Pint"
+# ./vendor/bin/pint --test $(cat "$STAGED_FILES_TEMP")
+# if [ $? -ne 0 ]; then
+#     echo "⚠️ Pint detected code style issues. Auto-fixing..."
+#     ./vendor/bin/pint $(cat "$STAGED_FILES_TEMP")
+#     echo "👉 Changes were made. Please 'git add' the fixed files and commit again."
+#     exit 1
+# fi
+
+echo "🎨 [3/4] Code Style - Laravel Pint"
+./vendor/bin/pint $(cat "$STAGED_FILES_TEMP")
+# git add auto fix laravel pint
+git add $(cat "$STAGED_FILES_TEMP")
+
+
+echo "🔎 [4/4] Static Analysis - PHPStan"
+# Run Larastan (PHPStan)
+echo "🔍 Running Larastan (PHPStan for Laravel)..."
+if ! ./vendor/bin/phpstan analyse --memory-limit=2G; then
+  echo "❌ Commit aborted: Larastan found issues."
+  exit 1
+fi
+echo "✅ Larastan passed. Proceeding with commit."
+
+
